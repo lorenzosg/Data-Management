@@ -1,0 +1,53 @@
+#loaded to work with JSON files which are the output of API call 
+install.packages("jsonlite")
+library("jsonlite")
+
+#loaded to use bind_rows (could alternatively use 'do.call(rbind, data)' in base)
+install.packages("dplyr")
+library(dplyr)
+
+#Loaded to use "pivot_wider" to reshape the data 
+install.packages("tidyr")
+library(tidyr)
+
+#saving the url for API query 
+url <- "https://api.ekata.com/2.0/transaction_risk?api_key=unique_key_goes_here"
+
+#this works 
+risk <- list()
+for(i in nrow(contacts)) {
+
+risk[[i]] <- GET(url = url, 
+            query = list(transaction_id="unique_key_goes_here", transaction_time="2021-9-9+11%3A2", 
+            primary.name = as.character(ekata.test[i,'full_name']), primary.phone=as.character(ekata.test[i, 'phone']), 
+            primary.email_address=as.character(ekata.test[i, 'email']), primary.address.street_line_1=as.character(ekata.test[i, 'address']), 
+            primary.address.city=as.character(ekata.test[i, 'city']), primary.address.state_code=as.character(ekata.test[i,'st']), 
+            primary.address.postal_code=as.character(ekata.test[i, 'zip'])))
+}
+
+
+#converting JSON files output into character values 
+my.list <- list()
+for(i in 1:length(risk)) { 
+ my.list[i] <-  list(assign(paste0("list", i), fromJSON(rawToChar(risk[i][[1]]$content))))
+}
+
+
+#turning each list of ouput data in the list into a data frame 
+list.df <- list()
+for(i in 1:length(my.list)) {
+ list.df[i] <-  list(assign(paste0("df", "i"), data.frame(unlist(my.list[i])))) 
+
+}
+
+#binding together the dataframes in list.df by row, and create column with identifier for each respondent 
+data.df <- bind_rows(list.df, .id = "respondent")
+
+#rownames are made of the different output variables such as "email" and "address"
+data.df$variables <- rownames(data.df)
+
+##gsub to get rid of the unique identifier numbers which are attached to the output associated with each respondent's contact info. For example for contact 1, output was returned "email1", "address1", to indicate it is associated with that contact. This is because the data is stored as two large column vectors of 1) variable names and 2) accuracy scores. We need to get rid of this in order to use pivot_wider to transform the data to be organized where each row corresponds to a respondent with general variables as columns. 
+data.df$variables <- gsub('[[:digit:]]+', '', data.df$variables)
+
+#reorganizing the data into columns by the now standardized variable names with associated values in order of original contact list 
+data.df <- pivot_wider(data.df, names_from = "variables", values_from = "unlist.my.list2.i..")
