@@ -13,8 +13,10 @@ library(tidyr)
 #saving the url for API query 
 url <- "https://api.ekata.com/2.0/transaction_risk?api_key=unique_key_goes_here"
 
-#this works 
+#initiate empty list to store queries
 risk <- list()
+
+#loop over all contacts to query Ekata API
 for(i in nrow(contacts)) {
 
 risk[[i]] <- GET(url = url, 
